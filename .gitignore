@@ -1,0 +1,68 @@
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Log files and other generated files
+log/
+*.log
+*.log.*
+*.json
+*.log.0
+
+# Binary files
+*.bin
+*.zip
+
+# Go executables
+bin/
+
+# Go test and benchmark files
+*.test
+*.prof
+
+# Go tools
+.idea/
+.vscode/
+*/.idea/
+*/.vscode/
+.idea/*
+.vscode/*
+.vscode-test/*
+
+# Cache and backup files
+*.swp
+*~
+*.bak
+
+# Build artifacts
+build/
+*.db
+
+# Vendor directory
+vendor/
+
+# IDE-specific files
+.idea
+.vscode
+
+# Generated files and directories
+/_generated/
+/_tools/
+/_output/
+/.gen/
+/go.sum
+/go.mod
+Gopkg.lock
+
+# Database files
+*.db
+.env
+
+# Dependency directories
+Godeps/
