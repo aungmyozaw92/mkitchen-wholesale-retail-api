@@ -38,4 +38,10 @@ func SetupRoutes(r *gin.Engine) {
 	protectedRouter.PATCH("/suppliers/:id", admin.UpdateSupplier)
 	protectedRouter.DELETE("/suppliers/:id", admin.DeleteSupplier)
 	protectedRouter.GET("/suppliers/:id", admin.GetSupplier)
+
+	// protectedRouter.GET("/suppliers", admin.GetAllSuppliers)
+	protectedRouter.POST("/products", admin.CreateProduct)
+	// protectedRouter.PATCH("/suppliers/:id", admin.UpdateSupplier)
+	// protectedRouter.DELETE("/suppliers/:id", admin.DeleteSupplier)
+	// protectedRouter.GET("/suppliers/:id", admin.GetSupplier)
 }

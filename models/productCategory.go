@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/helper"
-	// "github.com/myanmarmarathon/mkitchen-distribution-backend/helper"
 )
 
 type ProductCategory struct {
@@ -18,6 +17,15 @@ type ProductCategory struct {
 	SubCategories    []ProductCategory  `gorm:"foreignkey:ParentCategoryId" json:"sub_categories"`
 	CreatedAt        time.Time 			`gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt        time.Time 			`gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+}
+
+type CategoryRelation struct {
+	ID               uint    
+	Name             string  
+	NameMM           string   
+	ParentCategoryId *uint    
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 func (input *ProductCategory) BeforeSave() error {

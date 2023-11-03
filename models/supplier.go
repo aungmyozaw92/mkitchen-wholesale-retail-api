@@ -20,6 +20,18 @@ type Supplier struct {
 	DeletedAt   gorm.DeletedAt  `gorm:"index"`
 }
 
+type SupplierRelation struct {
+	ID          uint      	
+	Name        string    	
+	Email       string    	
+	Address     string    	
+	Phone       string    	
+	Password    string    	
+	CreatedAt   time.Time 	
+	UpdatedAt   time.Time 	
+	DeletedAt   gorm.DeletedAt 
+}
+
 func (result *Supplier) PrepareGive() {
 
 	result.Password = ""

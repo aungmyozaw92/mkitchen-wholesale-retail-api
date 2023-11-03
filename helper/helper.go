@@ -3,8 +3,10 @@ package helper
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"regexp"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/ttacon/libphonenumber"
@@ -46,4 +48,17 @@ func ValidatePhoneNumber(phoneNumber, countryCode string) error {
     }
 
     return nil // Phone number is valid for the specified country code
+}
+
+func GenerateUniqueFilename() string {
+    // Generate a timestamp to ensure uniqueness
+    timestamp := time.Now().UnixNano()
+
+    // Generate a random number to further enhance uniqueness
+    random := rand.Intn(1000) // You can adjust the range as needed
+
+    // Combine the timestamp and random number to create a unique filename
+    uniqueFilename := fmt.Sprintf("%d_%d", timestamp, random)
+
+    return uniqueFilename
 }
