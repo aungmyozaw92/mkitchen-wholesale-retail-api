@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/helper"
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/models"
 )
@@ -48,6 +49,13 @@ func CreateSupplier(context *gin.Context) {
         return
 	}
 
+	if err := validator.New().Struct(input); err != nil {
+		errorResponse := helper.ProcessValidationErrors(err)
+
+        context.JSON(http.StatusBadRequest, gin.H{"error": errorResponse})
+        return
+	}
+
 	_, err := input.CreateSupplier()
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -73,6 +81,13 @@ func UpdateSupplier(context *gin.Context) {
         context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid supplier ID"})
         return
     }
+
+	if err := validator.New().Struct(input); err != nil {
+		errorResponse := helper.ProcessValidationErrors(err)
+
+        context.JSON(http.StatusBadRequest, gin.H{"error": errorResponse})
+        return
+	}
 
 	_, err = input.UpdateSupplier(id)
 

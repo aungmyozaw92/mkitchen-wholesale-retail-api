@@ -7,10 +7,3 @@ func ErrorPanic(err error) {
 		panic(err)
 	}
 }
-
-// func RecordNotFoundErr(err error, customErr error) error {
-//     if gorm.IsRecordNotFoundError(err) {
-//         return customErr
-//     }
-//     return err
-// }

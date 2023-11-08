@@ -39,9 +39,9 @@ func SetupRoutes(r *gin.Engine) {
 	protectedRouter.DELETE("/suppliers/:id", admin.DeleteSupplier)
 	protectedRouter.GET("/suppliers/:id", admin.GetSupplier)
 
-	// protectedRouter.GET("/suppliers", admin.GetAllSuppliers)
+	protectedRouter.GET("/products", admin.GetAllProducts)
 	protectedRouter.POST("/products", admin.CreateProduct)
 	// protectedRouter.PATCH("/suppliers/:id", admin.UpdateSupplier)
-	// protectedRouter.DELETE("/suppliers/:id", admin.DeleteSupplier)
-	// protectedRouter.GET("/suppliers/:id", admin.GetSupplier)
+	protectedRouter.DELETE("/products/:id", admin.DeleteProduct)
+	protectedRouter.GET("/products/:id", admin.GetProduct)
 }

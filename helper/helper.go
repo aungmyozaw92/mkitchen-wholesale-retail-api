@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/jinzhu/gorm"
 	"github.com/ttacon/libphonenumber"
 )
@@ -51,14 +52,25 @@ func ValidatePhoneNumber(phoneNumber, countryCode string) error {
 }
 
 func GenerateUniqueFilename() string {
-    // Generate a timestamp to ensure uniqueness
+
     timestamp := time.Now().UnixNano()
 
-    // Generate a random number to further enhance uniqueness
-    random := rand.Intn(1000) // You can adjust the range as needed
+    random := rand.Intn(1000) 
 
-    // Combine the timestamp and random number to create a unique filename
     uniqueFilename := fmt.Sprintf("%d_%d", timestamp, random)
 
     return uniqueFilename
+}
+
+func ProcessValidationErrors(err error) map[string]string {
+
+    validationErrors := err.(validator.ValidationErrors)
+
+    errorResponse := make(map[string]string)
+
+    for _, ve := range validationErrors {
+        errorResponse[ve.Field()] = ve.Tag()
+    }
+
+    return errorResponse
 }

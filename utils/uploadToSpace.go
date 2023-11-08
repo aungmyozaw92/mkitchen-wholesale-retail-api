@@ -33,9 +33,15 @@ func SaveImageToSpaces(objectName, imageData string) error {
     }
 
     // Upload the decoded image data to the specified object name in your Space
-    contentType := "image/jpeg" // Change this as needed
+    contentType := "image/jpeg" 
+
+    // objectName = "products/" + objectName
+
     _, err = client.PutObject(context.Background(), bucketName, objectName, bytes.NewReader(decodedData), int64(len(decodedData)), minio.PutObjectOptions{
         ContentType: contentType,
+        UserMetadata: map[string]string{
+            "x-amz-acl": "public-read", 
+        },
     })
     if err != nil {
         return err

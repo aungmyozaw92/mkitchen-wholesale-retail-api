@@ -10,26 +10,14 @@ import (
 
 type Supplier struct {
 	ID          uint      		`gorm:"primary_key" json:"id"`
-	Name        string    		`gorm:"size:255;not null" json:"name" binding:"required"`
-	Email       string    		`gorm:"size:255;unique" json:"email" binding:"required"`
-	Address     string    		`gorm:"type:text;not null" json:"address" binding:"required"`
-	Phone       string    		`gorm:"size:255;unique;not null" json:"phone" binding:"required"`
+	Name        string    		`gorm:"size:255;not null" json:"name" validate:"required,min=3,max=50"`
+	Email       string    		`gorm:"size:255;unique" json:"email" validate:"required,email"`
+	Address     string    		`gorm:"type:text;not null" json:"address" validate:"required"`
+	Phone       string    		`gorm:"size:255;unique;not null" json:"phone" validate:"required,min=5,max=16"`
 	Password    string    		`gorm:"size:100" json:"password"`
 	CreatedAt   time.Time 		`gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt   time.Time 		`gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 	DeletedAt   gorm.DeletedAt  `gorm:"index"`
-}
-
-type SupplierRelation struct {
-	ID          uint      	
-	Name        string    	
-	Email       string    	
-	Address     string    	
-	Phone       string    	
-	Password    string    	
-	CreatedAt   time.Time 	
-	UpdatedAt   time.Time 	
-	DeletedAt   gorm.DeletedAt 
 }
 
 func (result *Supplier) PrepareGive() {

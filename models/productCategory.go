@@ -11,22 +11,14 @@ import (
 
 type ProductCategory struct {
 	ID               uint     			`gorm:"primary_key" json:"id"`
-	Name             string   			`gorm:"size:255;not null:unique" json:"name" binding:"required"`
-	NameMM           string    			`gorm:"size:255;not null:unique" json:"name_mm" binding:"required"`
+	Name             string   			`gorm:"size:255;not null:unique" validate:"required,min=3,max=200" json:"name"`
+	NameMM           string    			`gorm:"size:255;not null:unique" validate:"required,min=3,max=200" json:"name_mm"`
 	ParentCategoryId *uint     			`gorm:"index" json:"parent_category_id"`
 	SubCategories    []ProductCategory  `gorm:"foreignkey:ParentCategoryId" json:"sub_categories"`
 	CreatedAt        time.Time 			`gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt        time.Time 			`gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 }
 
-type CategoryRelation struct {
-	ID               uint    
-	Name             string  
-	NameMM           string   
-	ParentCategoryId *uint    
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-}
 
 func (input *ProductCategory) BeforeSave() error {
 	//remove spaces
@@ -62,9 +54,7 @@ func GetProductCategory(id uint64) (ProductCategory, error) {
 
 func (input *ProductCategory) CreateProductCategory() (*ProductCategory, error) {
 
-	isValidId := helper.IsRecordValidByID(*input.ParentCategoryId, &ProductCategory{}, DB)
-
-    if input.ParentCategoryId != nil && !isValidId {
+    if input.ParentCategoryId != nil && !helper.IsRecordValidByID(*input.ParentCategoryId, &ProductCategory{}, DB) {
         return &ProductCategory{}, errors.New("invalid product category id")
     }
 
@@ -87,9 +77,7 @@ func (input *ProductCategory) CreateProductCategory() (*ProductCategory, error) 
 
 func (input *ProductCategory) UpdateProductCategory(id uint64) (*ProductCategory, error) {
 
-	isValidId := helper.IsRecordValidByID(*input.ParentCategoryId, &ProductCategory{}, DB)
-
-    if input.ParentCategoryId != nil && !isValidId {
+    if input.ParentCategoryId != nil && !helper.IsRecordValidByID(*input.ParentCategoryId, &ProductCategory{}, DB) {
 		return &ProductCategory{}, errors.New("invalid product category id")
 	}
 

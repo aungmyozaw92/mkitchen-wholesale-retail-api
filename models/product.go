@@ -15,22 +15,24 @@ import (
 
 type Product struct {
 	ID                					uint      			`gorm:"primary_key" json:"id"`
-	Title             					string    			`gorm:"size:255;not null:unique" json:"title" binding:"required"`
-	Description       					string    			`gorm:"type:text;not null" json:"description" binding:"required"`
-	Price   							float64   			`gorm:"type:decimal(10,2);not null;default:0.0" json:"price" binding:"required"`
+	Title             					string    			`gorm:"size:255;not null:unique" json:"title" validate:"required,min=3,max=200"`
+	Description       					string    			`gorm:"type:text;not null" json:"description" validate:"required,min=3"`
+	Price   							float64   			`gorm:"type:decimal(10,2);not null;default:0.0" json:"price" validate:"required"`
 	ComparePrice   					    float64   			`gorm:"type:decimal(10,2);default:0.0" json:"compare_price"`
 	Cost   					            float64   			`gorm:"type:decimal(10,2);default:0.0" json:"cost"`
-	SKU                             	string    			`gorm:"size:100;not null;unique" json:"sku" binding:"required"`
-    Barcode                         	string    			`gorm:"size:100;unique" json:"barcode"`
+	SKU                             	string    			`gorm:"size:100;not null;unique" json:"sku"  validate:"required,min=3,max=50"`
+    Barcode                         	string    			`gorm:"size:100;unique" json:"barcode"  validate:"required,min=3,max=50"`
 	IsQtyTracked 	 					bool 	  			`gorm:"default:false" json:"is_qty_tracked"`
 	IsPhysicalProduct 	 				bool 	  			`gorm:"default:false" json:"is_physical_product"`
 	IsContinueSellingWhenOutOfStock 	bool 	  			`gorm:"default:false" json:"is_continue_selling_when_out_of_stock"`
-	Weight                              float64   			`gorm:"" json:"weight"`
-	ProductCategoryId 					uint     			`gorm:"index;not null" json:"product_category_id"`
-	CategoryRelation                    CategoryRelation     `gorm:"foreignKey:ProductCategoryId" json:"product_category"`
-	SupplierId 							uint     			`gorm:"index;not null" json:"supplier_id"`
-	SupplierRelation    				SupplierRelation   	`gorm:"foreignkey:SupplierId" json:"supplier"`
+	Weight                              float64   			`gorm:"type:decimal(10,2);default:0.0" json:"weight"`
+	ProductCategory   					*ProductCategory 	`gorm:"foreignKey:ProductCategoryId" json:"product_category"`
+	ProductCategoryId 					uint            	`gorm:"index;not null" json:"product_category_id" validate:"required"`
+	Supplier   							*Supplier 			`gorm:"foreignKey:SupplierId" json:"supplier"`
+	SupplierId 							uint            	`gorm:"index;not null" json:"supplier_id" validate:"required"`
 	Images      						[]Image 			`gorm:"polymorphic:Owner"`
+	ProductOptions 						[]ProductOption     `json:"product_options" validate:"required,dive,required"`
+	ProductVariations 					[]ProductVariation  `json:"product_variations" validate:"required,dive,required"`
 	CreatedAt        					time.Time  			`gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt        					time.Time 			`gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
 	DeletedAt        					gorm.DeletedAt   	`gorm:"index"`
@@ -44,6 +46,39 @@ func (input *Product) BeforeSave() error {
 	input.Barcode = html.EscapeString(strings.TrimSpace(input.Barcode))
 
 	return nil
+}
+
+func GetAllProducts() ([]Product, error) {
+
+	var results []Product
+
+	if err := DB.Find(&results).Error; err != nil {
+		return results, errors.New("no products")
+	}
+	return results, nil
+}
+
+func GetProduct(id uint64) (Product, error) {
+
+	var result Product
+
+	err := DB.Preload("ProductCategory").
+			Preload("Supplier").
+			Preload("Images").
+			Preload("ProductOptions").
+			Preload("ProductVariations.Images").
+			First(&result, id).Error
+
+	if err != nil {
+		return result, helper.ErrorRecordNotFound
+	}
+
+    result.Images = transformImageURLs(result.Images)
+    for i := range result.ProductVariations {
+        result.ProductVariations[i].Images = transformImageURLs(result.ProductVariations[i].Images)
+    }
+
+	return result, nil
 }
 
 
@@ -63,37 +98,56 @@ func (input *Product) CreateProduct() (*Product, error) {
 
 	var count int64
 
-	err := DB.Model(&Product{}).Where("sku = ?", input.SKU).Or("barcode = ?", input.Barcode).Count(&count).Error
+	err := DB.Model(&Product{}).Where("sku = ? OR barcode = ? OR title = ? ", input.SKU, input.Barcode, input.Title).
+				Count(&count).Error
 	if err != nil {
 		return &Product{}, err
 	}
 	if count > 0 {
-		return &Product{}, errors.New("duplicate sku or barcode")
+		return &Product{}, errors.New("duplicate sku or barcode or product title")
 	}
 
-	var images []Image
-    for _, image := range input.Images {
+	images, err := uploadImages(input.Images)
+	if err != nil {
+		return &Product{}, err
+	}
 
-        uploadedImages, err := uploadAndAppendImage(input, image)
-        if err != nil {
-            return &Product{}, err
+	input.Images = images
+
+	var productOptions []ProductOption
+
+	for _, optionRequest := range input.ProductOptions {
+        productOption := ProductOption{
+            OptionName:  optionRequest.OptionName,
+            OptionValue: optionRequest.OptionValue,
         }
-        images = append(images, uploadedImages...)
+        productOptions = append(productOptions, productOption)
     }
 
-	product := Product{
-        Title:   input.Title,
-        Description: input.Description,
-        Price: input.Price,
-        SKU: input.SKU,
-        Barcode: input.Barcode,
-        ProductCategoryId: input.ProductCategoryId,
-        SupplierId: input.SupplierId,
-        // Other fields
-        Images: images,
+	input.ProductOptions = productOptions
+
+	var productVariations []ProductVariation
+
+	for _, variation := range input.ProductVariations {
+
+		images, err := uploadImages(variation.Images)
+			if err != nil {
+				return &Product{}, err
+			}
+        productVariation := ProductVariation{
+			
+            VariantName:  variation.VariantName,
+            Price:  		variation.Price,
+            SKU:  			variation.SKU,
+            Barcode:  		variation.Barcode,
+            Images: 		images,
+        }
+        productVariations = append(productVariations, productVariation)
     }
 
-	err = DB.Create(&product).Error
+	input.ProductVariations = productVariations
+
+	err = DB.Create(&input).Error
 	
 	if err != nil {
 		return &Product{}, err
@@ -101,26 +155,53 @@ func (input *Product) CreateProduct() (*Product, error) {
 	return input, nil
 }
 
-func uploadAndAppendImage(input *Product, image Image) ([]Image, error) {
+func uploadImages(images []Image) ([]Image, error) {
+    var uploadedImages []Image
+
+    for _, image := range images {
+        uploadedImage, err := uploadAndAppendImage(image)
+        if err != nil {
+            return nil, err
+        }
+        uploadedImages = append(uploadedImages, uploadedImage...)
+    }
+
+    return uploadedImages, nil
+}
+
+func uploadAndAppendImage(image Image) ([]Image, error) {
 	
 	var images []Image
 
-	storagePath := ""
+	storagePath := "products/"
 	uniqueFilename := helper.GenerateUniqueFilename()
 	imageFilePath := filepath.Join(storagePath, uniqueFilename)
+	imageObjectUrl := storagePath + uniqueFilename
 
-    err := utils.SaveImageToSpaces(uniqueFilename,  image.ImageUrl)
+    err := utils.SaveImageToSpaces(imageObjectUrl,  image.ImageUrl)
 	if err != nil {
-		return images, errors.New("failed upload to space")
+		return images, errors.New("failed upload to cloud space")
 	}
 
 	imageObject := Image{
 		ImageUrl:  imageFilePath,
-		OwnerType: "Product",
-		OwnerID:   input.ID, 
 	}
 
 	images = append(images, imageObject)
 
 	return images, nil
+}
+
+func (input *Product) DeleteProduct(id uint64) (*Product, error) {
+
+	err := DB.Model(&Product{}).Where("id = ?", id).First(&input).Error
+	if  err != nil {
+        return nil, helper.ErrorRecordNotFound
+    }
+
+	err = DB.Delete(&input).Error
+	if err != nil {
+		return &Product{}, err
+	}
+	return input, nil
 }

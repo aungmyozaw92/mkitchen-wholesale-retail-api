@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/helper"
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/models"
 )
@@ -44,8 +45,16 @@ func GetProductCategory(context *gin.Context) {
 func CreateProductCategory(context *gin.Context) {
 
 	var input models.ProductCategory
+
 	if err := context.ShouldBindJSON(&input); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+	}
+
+	if err := validator.New().Struct(input); err != nil {
+		errorResponse := helper.ProcessValidationErrors(err)
+
+        context.JSON(http.StatusBadRequest, gin.H{"error": errorResponse})
         return
 	}
 
@@ -72,6 +81,13 @@ func UpdateProductCategory(context *gin.Context) {
         context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ProductCategory ID"})
         return
     }
+
+	if err := validator.New().Struct(input); err != nil {
+		errorResponse := helper.ProcessValidationErrors(err)
+
+        context.JSON(http.StatusBadRequest, gin.H{"error": errorResponse})
+        return
+	}
 
 	_, err = input.UpdateProductCategory(id)
 	if err != nil {

@@ -38,6 +38,6 @@ func ConnectDatabase() {
 		fmt.Println("We are connected to the database ", Dbdriver)
 	}
 
-	DB.AutoMigrate(&User{}, &ProductCategory{}, &Supplier{}, &Product{}, &Image{})
+	DB.AutoMigrate(&User{}, &ProductCategory{}, &Supplier{}, &Product{}, &Image{}, &ProductOption{}, &ProductVariation{})
 	
 }
