@@ -10,6 +10,7 @@ type ProductVariation struct {
     SKU             string    	`gorm:"size:100;not null;unique" json:"sku"  validate:"required,min=3,max=50"`
     Barcode         string    	`gorm:"size:100;unique" json:"barcode"  validate:"required,min=3,max=50"`
     Images      	[]Image 	`gorm:"polymorphic:Owner"`
-    CreatedAt       time.Time  	`gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt       time.Time 	`gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+    IsDelete 		bool 		`json:"is_delete"`
+    CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
 }

@@ -20,6 +20,7 @@ func SetupRoutes(r *gin.Engine) {
 	protectedRouter.Use(middlewares.JwtAuthMiddleware())
 
 	protectedRouter.GET("/profile", admin.CurrentUser)
+	protectedRouter.POST("/logout", admin.Logout)
 
 	protectedRouter.GET("/users", admin.GetAllUsers)
 	protectedRouter.POST("/users", admin.CreateUser)
@@ -41,7 +42,16 @@ func SetupRoutes(r *gin.Engine) {
 
 	protectedRouter.GET("/products", admin.GetAllProducts)
 	protectedRouter.POST("/products", admin.CreateProduct)
-	// protectedRouter.PATCH("/suppliers/:id", admin.UpdateSupplier)
+	protectedRouter.PATCH("/products/:id", admin.UpdateProduct)
 	protectedRouter.DELETE("/products/:id", admin.DeleteProduct)
 	protectedRouter.GET("/products/:id", admin.GetProduct)
+
+	protectedRouter.POST("/upload_image", admin.UploadImage)
+	protectedRouter.DELETE("/delete_image/:id", admin.DeleteImage)
+
+	protectedRouter.GET("/purchase_orders", admin.GetAllPurchaseOrders)
+	protectedRouter.POST("/purchase_orders", admin.CreatePurchaseOrder)
+	protectedRouter.PATCH("/purchase_orders/:id", admin.UpdatePurchaseOrder)
+	protectedRouter.DELETE("/purchase_orders/:id", admin.DeletePurchaseOrder)
+	protectedRouter.GET("/purchase_orders/:id", admin.GetPurchaseOrder)
 }

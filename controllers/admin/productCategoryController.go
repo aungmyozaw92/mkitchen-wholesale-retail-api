@@ -12,7 +12,7 @@ import (
 
 func GetAllProductCategories(context *gin.Context) {
 
-	users, err := models.GetAllProductCategories()
+	users, err := models.GetAllProductCategories(context)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

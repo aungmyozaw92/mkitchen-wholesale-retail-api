@@ -6,7 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/helper"
+	"github.com/myanmarmarathon/mkitchen-distribution-backend/utils"
+	"gorm.io/gorm"
 )
 
 type ProductCategory struct {
@@ -15,12 +18,12 @@ type ProductCategory struct {
 	NameMM           string    			`gorm:"size:255;not null:unique" validate:"required,min=3,max=200" json:"name_mm"`
 	ParentCategoryId *uint     			`gorm:"index" json:"parent_category_id"`
 	SubCategories    []ProductCategory  `gorm:"foreignkey:ParentCategoryId" json:"sub_categories"`
-	CreatedAt        time.Time 			`gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt        time.Time 			`gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	CreatedAt  		 time.Time 			`json:"created_at"`
+	UpdatedAt   	 time.Time 			`json:"updated_at"`
 }
 
 
-func (input *ProductCategory) BeforeSave() error {
+func (input *ProductCategory) BeforeSave(*gorm.DB) error {
 	//remove spaces
 	input.Name = html.EscapeString(strings.TrimSpace(input.Name))
 	input.NameMM = html.EscapeString(strings.TrimSpace(input.NameMM))
@@ -28,12 +31,16 @@ func (input *ProductCategory) BeforeSave() error {
 	return nil
 }
 
-func GetAllProductCategories() ([]ProductCategory, error) {
+func GetAllProductCategories(c *gin.Context) ([]ProductCategory, error) {
+
+	pageParam := c.Query("page")
+	perPageParam := c.Query("perPage")
 
 	var results []ProductCategory
 
-	// if err := DB.Find(&results).Error; err != nil {
-	if err := DB.Preload("SubCategories").Find(&results).Error; err != nil {
+	// db.Scopes(helpers.SearchByColumn(db, columnName, searchKeyword), helpers.ByColumn(db, columnName, columnValue)).Find(&products)
+
+	if err := utils.Paginate(DB, pageParam, perPageParam, &results, "",""); err != nil {
 		return results, errors.New("no product categories")
 	}
 	return results, nil

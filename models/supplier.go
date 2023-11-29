@@ -15,8 +15,8 @@ type Supplier struct {
 	Address     string    		`gorm:"type:text;not null" json:"address" validate:"required"`
 	Phone       string    		`gorm:"size:255;unique;not null" json:"phone" validate:"required,min=5,max=16"`
 	Password    string    		`gorm:"size:100" json:"password"`
-	CreatedAt   time.Time 		`gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt   time.Time 		`gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	CreatedAt   time.Time 		`json:"created_at"`
+	UpdatedAt   time.Time 		`json:"updated_at"`
 	DeletedAt   gorm.DeletedAt  `gorm:"index"`
 }
 
@@ -25,7 +25,7 @@ func (result *Supplier) PrepareGive() {
 	result.Password = ""
 }
 
-func (input *Supplier) BeforeSave() error {
+func (input *Supplier) BeforeSave(*gorm.DB) error {
 
 	//turn password into hash
 	if input.Password != "" {

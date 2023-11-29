@@ -30,14 +30,26 @@ func GenerateToken(userid uint, username string) (string, error) {
 
 }
 
+var Blacklist = make(map[string]struct{})
+
+func Logout(tokenString string) {
+	Blacklist[tokenString] = struct{}{}
+}
+
 func TokenValid(c *gin.Context) error {
 	tokenString := ExtractToken(c)
+
+	if _, exists := Blacklist[tokenString]; exists {
+		return fmt.Errorf("token is blacklisted")
+	}
+
 	_, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(os.Getenv("API_SECRET")), nil
 	})
+	
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -79,3 +91,5 @@ func ExtractTokenID(c *gin.Context) (uint, error) {
 	}
 	return 0, nil
 }
+
+

@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/joho/godotenv"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
@@ -29,7 +29,7 @@ func ConnectDatabase() {
 
 	DBURL := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local", DbUser, DbPassword, DbHost, DbPort, DbName)
 
-	DB, err = gorm.Open(Dbdriver, DBURL)
+	DB, err = gorm.Open(mysql.Open(DBURL), &gorm.Config{})
 
 	if err != nil {
 		fmt.Println("Cannot connect to database ", Dbdriver)
@@ -38,6 +38,34 @@ func ConnectDatabase() {
 		fmt.Println("We are connected to the database ", Dbdriver)
 	}
 
-	DB.AutoMigrate(&User{}, &ProductCategory{}, &Supplier{}, &Product{}, &Image{}, &ProductOption{}, &ProductVariation{})
+	DB.AutoMigrate(
+		&User{}, 
+		&ProductCategory{}, 
+		&Supplier{}, 
+		&Product{}, 
+		&Image{}, 
+		&ProductOption{}, 
+		&ProductVariation{},
+		&Tag{},
+		&ProductTags{},
+		&PurchaseOrder{},
+		&PurchaseOrderItem{},
+	)
+
+	// if err := DB.AutoMigrate(
+	// 	&User{}, 
+	// 	&ProductCategory{}, 
+	// 	&Supplier{}, 
+	// 	&Product{}, 
+	// 	&Image{}, 
+	// 	&ProductOption{}, 
+	// 	&ProductVariation{},
+	// 	&Tag{},
+	// 	&ProductTags{},
+	// 	&PurchaseOrder{},
+	// 	&PurchaseOrderItem{},
+	// ); err != nil {
+    // fmt.Println("Error during migration:", err)
+// }
 	
 }

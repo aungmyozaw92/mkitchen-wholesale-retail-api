@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/jinzhu/gorm"
 	"github.com/ttacon/libphonenumber"
+	"gorm.io/gorm"
 )
 
 var ErrorRecordNotFound = errors.New("record not found")

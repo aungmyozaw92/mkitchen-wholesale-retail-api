@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -54,4 +55,21 @@ func Login(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+func Logout(context *gin.Context) {
+
+	tokenString := token.ExtractToken(context)
+
+	err := token.TokenValid(context)
+
+	if err != nil {
+		fmt.Println("Logout error:", err)
+		context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	token.Logout(tokenString)
+
+	context.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
 }

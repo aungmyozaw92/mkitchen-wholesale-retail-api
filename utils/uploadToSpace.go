@@ -4,11 +4,30 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
+
+func getClient() (*minio.Client, error) {
+	endpoint := os.Getenv("SP_URL")
+	accessKey := os.Getenv("SP_ACCESS_KEY_ID")
+	secretKey := os.Getenv("SP_SECRET_ACCESS_KEY")
+	
+
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
 
 func SaveImageToSpaces(objectName, imageData string) error {
     // Decode the base64 data
@@ -16,26 +35,16 @@ func SaveImageToSpaces(objectName, imageData string) error {
     if err != nil {
         return err
     }
+    bucketName := os.Getenv("SP_BUCKET")   
 
-    // Set your DigitalOcean Spaces credentials
-    endpoint := os.Getenv("SP_URL")
-	accessKey := os.Getenv("SP_ACCESS_KEY_ID")
-	secretKey := os.Getenv("SP_SECRET_ACCESS_KEY")
-	bucketName := os.Getenv("SP_BUCKET")       
-
-    // Initialize a new Minio client
-    client, err := minio.New(endpoint, &minio.Options{
-        Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-        Secure: true,
-    })
+    // Get the Minio client
+	client, err := getClient()
     if err != nil {
-        return err
-    }
+		return err
+	}
 
     // Upload the decoded image data to the specified object name in your Space
     contentType := "image/jpeg" 
-
-    // objectName = "products/" + objectName
 
     _, err = client.PutObject(context.Background(), bucketName, objectName, bytes.NewReader(decodedData), int64(len(decodedData)), minio.PutObjectOptions{
         ContentType: contentType,
@@ -48,4 +57,28 @@ func SaveImageToSpaces(objectName, imageData string) error {
     }
 
     return nil
+}
+
+func DeleteImageFromSpaces(objectName string) error {
+	// Get the Minio client
+	client, err := getClient()
+	if err != nil {
+		return err
+	}
+
+    bucketName := os.Getenv("SP_BUCKET")  
+
+	// Remove the specified object from your Space
+	err = client.RemoveObject(context.Background(), bucketName, objectName, minio.RemoveObjectOptions{})
+	if err != nil {
+		// Check if the error is due to the object not existing
+		if strings.Contains(err.Error(), "The specified key does not exist") {
+			fmt.Print("Object does not exist:", objectName)
+			return nil
+		}
+		return err
+	}
+
+	fmt.Print("Object deleted successfully:", objectName)
+	return nil
 }

@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -11,9 +10,9 @@ import (
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/models"
 )
 
-func GetAllProducts(context *gin.Context) {
+func GetAllPurchaseOrders(context *gin.Context) {
 
-	users, err := models.GetAllProducts(context)
+	users, err := models.GetAllPurchaseOrders(context)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -22,15 +21,15 @@ func GetAllProducts(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "success", "data": users})
 }
 
-func GetProduct(context *gin.Context) {
+func GetPurchaseOrder(context *gin.Context) {
 
 	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
     if err != nil {
-        context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
+        context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PurchaseOrder ID"})
         return
     }
 
-	model, err := models.GetProduct(id)
+	model, err := models.GetPurchaseOrder(id)
 	if err != nil {
 		if err == helper.ErrorRecordNotFound {
             context.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -43,12 +42,11 @@ func GetProduct(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "success", "data": model})
 }
 
-func CreateProduct(context *gin.Context) {
+func CreatePurchaseOrder(context *gin.Context) {
 
-	var input models.Product
+	var input models.PurchaseOrder
 	
 	if err := context.ShouldBindJSON(&input); err != nil {
-		fmt.Print(err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
 	}
@@ -60,7 +58,7 @@ func CreateProduct(context *gin.Context) {
         return
 	}
 
-	_, err := input.CreateProduct()
+	_, err := input.CreatePurchaseOrder()
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -70,9 +68,9 @@ func CreateProduct(context *gin.Context) {
 	
 }
 
-func UpdateProduct(context *gin.Context) {
+func UpdatePurchaseOrder(context *gin.Context) {
 
-	var input models.Product
+	var input models.UpdatePurchaseOrder
 	if err := context.ShouldBindJSON(&input); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -80,11 +78,11 @@ func UpdateProduct(context *gin.Context) {
 
 	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
     if err != nil {
-        context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
+        context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PurchaseOrder ID"})
         return
     }
 
-	_, err = input.UpdateProduct(id)
+	_, err = input.UpdatePurchaseOrder(id)
 	if err != nil {
 		if err == helper.ErrorRecordNotFound {
             context.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -97,58 +95,17 @@ func UpdateProduct(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "update success"})
 }
 
-func DeleteProduct(context *gin.Context) {
+func DeletePurchaseOrder(context *gin.Context) {
 
-	var input models.Product
+	var input models.PurchaseOrder
 	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+
     if err != nil {
-        context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Product ID"})
+        context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PurchaseOrder ID"})
         return
     }
 	
-	_, err = input.DeleteProduct(id)
-	if err != nil {
-		if err == helper.ErrorRecordNotFound {
-            context.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-            return
-        }
-        context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-	}
-
-	context.JSON(http.StatusOK, gin.H{"message": "delete success"})
-}
-
-func UploadImage(context *gin.Context) {
-
-	var input models.Image
-	
-	if err := context.ShouldBindJSON(&input); err != nil {
-		fmt.Print(err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-	}
-
-	_, err := input.UploadImage()
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	context.JSON(http.StatusOK, gin.H{"message": "create success"})
-	
-}
-
-func DeleteImage(context *gin.Context) {
-
-	var input models.Image
-	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
-    if err != nil {
-        context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Image ID"})
-        return
-    }
-	
-	_, err = input.DeleteImage(id)
+	_, err = input.DeletePurchaseOrder(id)
 	if err != nil {
 		if err == helper.ErrorRecordNotFound {
             context.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

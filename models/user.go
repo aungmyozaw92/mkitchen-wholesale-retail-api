@@ -9,6 +9,7 @@ import (
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/helper"
 	"github.com/myanmarmarathon/mkitchen-distribution-backend/utils/token"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type User struct {
@@ -17,9 +18,9 @@ type User struct {
 	Name        string    `gorm:"size:255;not null" json:"name" binding:"required"`
 	Email       string    `gorm:"size:255;unique" json:"email"`
 	Password    string    `gorm:"size:100;not null" json:"password"`
-	IsActive    *bool     `gorm:"not null" json:"is_active"`
-	CreatedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	IsActive    bool     `gorm:"not null" json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (result *User) PrepareGive() {
@@ -37,7 +38,7 @@ func VerifyPassword(password, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func (input *User) BeforeSave() error {
+func (input *User) BeforeSave(*gorm.DB) error {
 
 	//turn password into hash
 	hashedPassword, err := Hash(input.Password)
@@ -46,6 +47,9 @@ func (input *User) BeforeSave() error {
 	}
 	input.Password = string(hashedPassword)
 
+	if !input.IsActive {
+    	input.IsActive = false
+	}
 	//remove spaces in username
 	input.Username = html.EscapeString(strings.TrimSpace(input.Username))
 

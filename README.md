@@ -15,6 +15,7 @@ API_SECRET=
 TOKEN_HOUR_LIFESPAN=
 
 // upload images to Digital Ocean Spaces
+
 SP_ACCESS_KEY_ID=
 
 SP_SECRET_ACCESS_KEY=
