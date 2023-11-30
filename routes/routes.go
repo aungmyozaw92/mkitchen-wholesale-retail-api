@@ -54,4 +54,6 @@ func SetupRoutes(r *gin.Engine) {
 	protectedRouter.PATCH("/purchase_orders/:id", admin.UpdatePurchaseOrder)
 	protectedRouter.DELETE("/purchase_orders/:id", admin.DeletePurchaseOrder)
 	protectedRouter.GET("/purchase_orders/:id", admin.GetPurchaseOrder)
+
+	protectedRouter.POST("/purchase_orders/:id/receive", admin.ReceivePurchaseOrder)
 }

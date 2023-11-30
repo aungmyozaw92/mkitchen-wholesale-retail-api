@@ -33,8 +33,8 @@ type PurchaseOrder struct {
 	ReceivedStatus      Status 					`gorm:"type:enum('pending', 'partial', 'complete');default:'pending'" json:"received_status"`
 	Description       	string    				`gorm:"type:text" json:"description"`
 	TotalItemCount      uint    				`gorm:"" json:"total_item_count"`
-	TotalReceivedQty    uint    				`gorm:"" json:"total_received_qty"`
-	TotalRemainingQty   uint    				`gorm:"" json:"total_remaining_qty"`
+	TotalReceivedQty    float64    				`gorm:"" json:"total_received_qty"`
+	TotalRemainingQty   float64    				`gorm:"" json:"total_remaining_qty"`
 	PurchaseOrderItems []PurchaseOrderItem 		`json:"purchase_order_items" validate:"required,dive,required"`
 	PurchaseDate		time.Time 				`gorm:"" json:"purchase_date" validate:"required"`
 	ReferenceNo          string    				`gorm:"size:255;" json:"reference_no"`
@@ -50,11 +50,13 @@ type UpdatePurchaseOrder struct {
 	Description       	 string    				`gorm:"type:text" json:"description"`
 	ReferenceNo          string    				`gorm:"size:255;" json:"reference_no"`
 	NoteToSupplier       string    				`gorm:"type:text;" json:"note_to_supplier"`
-
 	AddItems     		[]PurchaseOrderItem 	`json:"add_items" validate:"required,dive,required"`
 	UpdateItems  		[]PurchaseOrderItem 	`json:"update_items" validate:"required,dive,required"`
 	DeleteItems     	[]uint               	`json:"delete_items"`
-	
+}
+
+type ReceivePurchaseOrder struct {
+	ReceiveItems     	[]ReceivePurchaseOrderItem 	`json:"receive_items" validate:"required,dive,required"`
 }
 
 func (p *PurchaseOrder) UnmarshalJSON(data []byte) error {
@@ -204,6 +206,7 @@ func (input *PurchaseOrder) CreatePurchaseOrder() (*PurchaseOrder, error) {
 			ProductVariationId: item.ProductVariationId,
 			ProductName:        item.ProductName,
 			Qty:                item.Qty,
+			TotalRemainingQty:  item.Qty,
 			UnitPrice:          item.UnitPrice,
 			TaxPercent:         item.TaxPercent,
 		}
@@ -237,9 +240,11 @@ func (input *PurchaseOrder) CreatePurchaseOrder() (*PurchaseOrder, error) {
 
 func (input *UpdatePurchaseOrder) UpdatePurchaseOrder(id uint64) (*PurchaseOrder, error) {
 
+	tx := DB.Begin()
+
     var existingPurchaseOrder PurchaseOrder
-	if err := DB.First(&existingPurchaseOrder, id).Error; err != nil {
-		return &PurchaseOrder{}, errors.New("error fetching product")
+	if err := tx.First(&existingPurchaseOrder, id).Error; err != nil {
+		return &PurchaseOrder{}, errors.New("error fetching purchase order")
 	}
 
 	// Update purchase order fields with the payload
@@ -273,33 +278,40 @@ func (input *UpdatePurchaseOrder) UpdatePurchaseOrder(id uint64) (*PurchaseOrder
     for _, updateItem := range input.UpdateItems {
 		var existingItem PurchaseOrderItem
 
-			if err := DB.Where("ID = ? AND purchase_order_id = ?", updateItem.ID, id).First(&existingItem).Error; err ==  nil {         
-
-                existingItem.ProductVariationId = updateItem.ProductVariationId
-                existingItem.ProductName = updateItem.ProductName
-                existingItem.Qty = updateItem.Qty
-                existingItem.UnitPrice = updateItem.UnitPrice
-                existingItem.TaxPercent = updateItem.TaxPercent
-				
-				existingItem.CalculateTaxAndTotal()
-				
-				if err := DB.Save(&existingItem).Error; err != nil {
-					return &PurchaseOrder{}, err
-				}
-				existingPurchaseOrder.PurchaseOrderItems = append(existingPurchaseOrder.PurchaseOrderItems, updateItem)
+		if err := tx.Where("ID = ? AND purchase_order_id = ?", updateItem.ID, id).First(&existingItem).Error; err !=  nil {         
+			tx.Rollback()
+			return &PurchaseOrder{}, err
 		}
+
+		existingItem.ProductVariationId = updateItem.ProductVariationId
+		existingItem.ProductName = updateItem.ProductName
+		existingItem.Qty = updateItem.Qty
+		existingItem.UnitPrice = updateItem.UnitPrice
+		existingItem.TaxPercent = updateItem.TaxPercent
+		
+		existingItem.CalculateTaxAndTotal()
+		
+		if err := tx.Save(&existingItem).Error; err != nil {
+			tx.Rollback()
+			return &PurchaseOrder{}, err
+		}
+		existingPurchaseOrder.PurchaseOrderItems = append(existingPurchaseOrder.PurchaseOrderItems, updateItem)
     }
 
     // Process delete_items
 
 	for _, deleteItemID := range input.DeleteItems {
+
 		var existingItem PurchaseOrderItem
-		if err := DB.Where("ID = ? AND purchase_order_id = ?", deleteItemID, id).First(&existingItem).Error; err == nil {
-		
-			if err := DB.Delete(&existingItem).Error; err != nil {
-				return &PurchaseOrder{}, err
-			}
-		
+
+		if err := tx.Where("ID = ? AND purchase_order_id = ?", deleteItemID, id).First(&existingItem).Error; err != nil {
+			tx.Rollback()
+			return &PurchaseOrder{}, err
+		}
+
+		if err := tx.Delete(&existingItem).Error; err != nil {
+			tx.Rollback()
+			return &PurchaseOrder{}, err
 		}
 	}
 
@@ -307,8 +319,79 @@ func (input *UpdatePurchaseOrder) UpdatePurchaseOrder(id uint64) (*PurchaseOrder
     existingPurchaseOrder.CalculateTotals()
 
     // Save the updated purchase order
-    if err := DB.Save(&existingPurchaseOrder).Error; err != nil {
-        return nil, err
+    if err := tx.Save(&existingPurchaseOrder).Error; err != nil {
+		tx.Rollback()
+        return &PurchaseOrder{}, err
+    }
+
+	if err := tx.Commit().Error; err != nil {
+        return &PurchaseOrder{}, err
+    }
+
+    return &existingPurchaseOrder, nil
+}
+
+func (input *ReceivePurchaseOrder) ReceivePurchaseOrder(id uint64) (*PurchaseOrder, error) {
+
+	tx := DB.Begin()
+
+    var existingPurchaseOrder PurchaseOrder
+	if err := tx.First(&existingPurchaseOrder, id).Error; err != nil {
+		return &PurchaseOrder{}, errors.New("error fetching purchase order")
+	}
+
+	if existingPurchaseOrder.ReceivedStatus == Complete && existingPurchaseOrder.TotalRemainingQty == 0 {
+		return &PurchaseOrder{}, errors.New("this purchase order is already received")
+	}
+
+    // Process update_items
+	
+    for _, updateItem := range input.ReceiveItems {
+		var existingItem PurchaseOrderItem
+
+		if err := tx.Where("ID = ? AND purchase_order_id = ?", updateItem.ID, id).First(&existingItem).Error; err !=  nil {         
+			tx.Rollback()
+			return &PurchaseOrder{}, err
+		}
+
+		if updateItem.ReceivedQty > existingItem.TotalRemainingQty {
+			tx.Rollback()
+			return &PurchaseOrder{}, errors.New("please enter receive qty less than remaining qty")
+		}
+
+		existingItem.TotalReceivedQty += updateItem.ReceivedQty
+		existingItem.TotalRemainingQty = existingItem.TotalRemainingQty - updateItem.ReceivedQty
+
+		if existingItem.TotalRemainingQty > 0 {
+			existingItem.ReceivedStatus = Partial
+		}else{
+			existingItem.ReceivedStatus = Complete
+		}
+		
+		if err := tx.Save(&existingItem).Error; err != nil {
+			tx.Rollback()
+			return &PurchaseOrder{}, err
+		}
+
+		existingPurchaseOrder.TotalReceivedQty += updateItem.ReceivedQty
+		existingPurchaseOrder.TotalRemainingQty = existingPurchaseOrder.TotalRemainingQty - updateItem.ReceivedQty
+		
+    }
+
+	if existingPurchaseOrder.TotalRemainingQty > 0 {
+		existingPurchaseOrder.ReceivedStatus = Partial
+	}else{
+		existingPurchaseOrder.ReceivedStatus = Complete
+	}
+
+    // Save the updated purchase order
+    if err := tx.Save(&existingPurchaseOrder).Error; err != nil {
+		tx.Rollback()
+        return &PurchaseOrder{}, err
+    }
+
+	if err := tx.Commit().Error; err != nil {
+        return &PurchaseOrder{}, err
     }
 
     return &existingPurchaseOrder, nil

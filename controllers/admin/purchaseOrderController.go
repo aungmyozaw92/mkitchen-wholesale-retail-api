@@ -95,6 +95,33 @@ func UpdatePurchaseOrder(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "update success"})
 }
 
+func ReceivePurchaseOrder(context *gin.Context) {
+
+	var input models.ReceivePurchaseOrder
+	if err := context.ShouldBindJSON(&input); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+    if err != nil {
+        context.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PurchaseOrder ID"})
+        return
+    }
+
+	_, err = input.ReceivePurchaseOrder(id)
+	if err != nil {
+		if err == helper.ErrorRecordNotFound {
+            context.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+            return
+        }
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "update success"})
+}
+
 func DeletePurchaseOrder(context *gin.Context) {
 
 	var input models.PurchaseOrder
